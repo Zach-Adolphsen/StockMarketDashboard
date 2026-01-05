@@ -48,7 +48,7 @@ jobs:
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-            psql "postgresql://${{ secrets.SUPABASE_DB_USER }}@${{ secrets.SUPABASE_DB_HOST }}:${{ secrets.SUPABASE_DB_PORT }}/${{ secrets.SUPABASE_DB_NAME }}" \
+            psql "postgresql://${{ secrets.SUPABASE_DB_USER }}:${{secrets.SUPABASE_DB_PASSWORD}}@${{ secrets.SUPABASE_DB_HOST }}:${{ secrets.SUPABASE_DB_PORT }}/${{ secrets.SUPABASE_DB_NAME }}" \
             -c "\copy analytics_symbol_daily_snapshot TO 'analytics_symbol_daily_snapshot.csv' CSV HEADER"
 
       - name: Commit CSV

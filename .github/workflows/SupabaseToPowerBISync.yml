@@ -41,7 +41,7 @@ jobs:
       - name: Run stock data pipeline
         env:
           API_KEY: ${{ secrets.API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           python -m src.main
 

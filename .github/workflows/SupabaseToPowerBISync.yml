@@ -11,7 +11,6 @@ env:
   DB_PORT: ${{ secrets.SUPABASE_DB_PORT }}
   DB_USER: ${{ secrets.SUPABASE_DB_USER }}
   DB_NAME: ${{ secrets.SUPABASE_DB_NAME }}
-  DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
   EXPORT_TABLE: analytics_symbol_daily_snapshot
   EXPORT_FILE: ${{ github.workspace }}/analytics_symbol_daily_snapshot.csv
 
@@ -45,23 +44,24 @@ jobs:
         run: |
           python -m src.main
 
-      - name: Export data to CSV
+      - name: Export analytics snapshot to CSV
         env:
-          SUPABASE_PASSWORD: ${{ env.SUPABASE_DB_PASSWORD }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-              psql \
-                -h "$DB_HOST" \
-                -p "$DB_PORT" \
-                -U "$DB_USER" \
-                -d "$DB_NAME" \
-                -c "\copy $EXPORT_TABLE TO '$EXPORT_FILE' CSV HEADER" 2>&1 | grep -v "password" || true
-              
-              if [ ! -f "$EXPORT_FILE" ] || [ ! -s "$EXPORT_FILE" ]; then
-                echo "Error: CSV export failed or file is empty"
-                exit 1
-              fi
-              
-              echo "Successfully exported $EXPORT_TABLE to CSV"
+          psql \
+          -h ${{ secrets.SUPABASE_DB_HOST }} \
+          -p ${{ secrets.SUPABASE_DB_PORT }} \
+          -U ${{ secrets.SUPABASE_DB_USER }} \
+          -d ${{ secrets.SUPABASE_DB_NAME }} \
+          -c "\copy analytics_symbol_daily_snapshot TO 'analytics_symbol_daily_snapshot.csv' CSV HEADER"
+
+      - name: Commit CSV
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add analytics_symbol_daily_snapshot.csv
+          git commit -m "Daily Power BI snapshot" || echo "No changes"
+          git push
 
       - name: Notify on failure
         if: failure()

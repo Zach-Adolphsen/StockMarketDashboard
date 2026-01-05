@@ -1,0 +1,65 @@
+name: Supabase to Power BI Sync
+
+on:
+  schedule:
+    # Run every weekday at 9 AM UTC (market open time)
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run stock data pipeline
+        env:
+          API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          python -m src.main
+
+      - name: Export Supabase data to Power BI
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          POWERBI_TENANT_ID: ${{ secrets.POWERBI_TENANT_ID }}
+          POWERBI_CLIENT_ID: ${{ secrets.POWERBI_CLIENT_ID }}
+          POWERBI_CLIENT_SECRET: ${{ secrets.POWERBI_CLIENT_SECRET }}
+          POWERBI_WORKSPACE_ID: ${{ secrets.POWERBI_WORKSPACE_ID }}
+          POWERBI_DATASET_ID: ${{ secrets.POWERBI_DATASET_ID }}
+        run: |
+          python scripts/export_to_powerbi.py
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Supabase to Power BI sync failed. Check the workflow logs for details.'
+            })
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: workflow-logs
+          path: logs/
+          retention-days: 7

@@ -17,6 +17,9 @@ env:
 jobs:
   sync-data:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
     timeout-minutes: 30
 
     steps:
@@ -66,7 +69,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
                 github.rest.issues.createComment({
-                  issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   body: 'Supabase to Power BI sync failed. Check the workflow logs for details.'

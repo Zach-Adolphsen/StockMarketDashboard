@@ -1,40 +1,38 @@
 import os
-import time
 import requests
 from dotenv import load_dotenv
 import pandas as pd
 
-symbols: list[str] = ["AAPL", "MSFT", "GOOG"]
+from src.database import load_data
+
+symbols: list[str] = ["AAPL", "MSFT", "GOOG", "IBM", "TSLA"]
 
 def get_stock_data(symbol: str):
     url : str = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={API_KEY}"
     response = requests.get(url)
     return response.json()
 
-def transform_symbol_data(symbol: str) -> pd.DataFrame:
-    '''
-    Handles the transformation of the raw data into a desired format
-    Scope of this function is the Time Series (Daily) data
-    :return:
-    '''
-    raw_data = get_stock_data(symbol)
-
+def transform_symbol_data(raw_data) -> pd.DataFrame:
+    """
+        Handles the transformation of the raw data into a desired format
+        Scope of this function is the Time Series (Daily) data
+    """
     nested_data = raw_data["Time Series (Daily)"]
     df = pd.DataFrame.from_dict(nested_data, orient="index")
     df.index = pd.to_datetime(df.index)
     df = df.apply(pd.to_numeric)
+    df = df.round(2)
 
     df.columns = df.columns.str.replace(r'^\d+\.\s+', '', regex=True)
     df.index.name = "date"
     df = df.reset_index()
 
-    df['date'] = pd.to_datetime(df['date'])
+    df['date'] = pd.to_datetime(df['date']).dt.date
 
     df.drop(columns=["volume"], inplace=True)
     return df
 
-def transform_symbol_meta_data(symbol: str) -> pd.DataFrame:
-    raw_data = get_stock_data(symbol)
+def transform_symbol_meta_data(raw_data) -> pd.DataFrame:
     nested_data = raw_data["Meta Data"]
     df = pd.DataFrame(nested_data, index=[0])
 
@@ -44,7 +42,7 @@ def transform_symbol_meta_data(symbol: str) -> pd.DataFrame:
 
     df.drop(columns=['information', 'output_size', 'time_zone'], inplace=True)
 
-    df['last_refreshed'] = pd.to_datetime(df['last_refreshed'])
+    df['last_refreshed'] = pd.to_datetime(df['last_refreshed']).dt.date
     return df
 
 
@@ -52,10 +50,11 @@ if __name__ == "__main__":
     load_dotenv()
     API_KEY = os.getenv("API_KEY")
 
-    symbol_data = transform_symbol_data("AAPL")
-    print(symbol_data)
-    time.sleep(1)
-    symbol_info = transform_symbol_meta_data("AAPL")
-    print(symbol_info)
-
+    for s in symbols:
+        data = get_stock_data(s)
+        symbol_data = transform_symbol_data(data)
+        print(symbol_data)
+        symbol_info = transform_symbol_meta_data(data)
+        print(symbol_info)
+        load_data(symbol_info, symbol_data)
 

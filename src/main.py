@@ -1,4 +1,6 @@
 import os
+import time
+
 import requests
 from dotenv import load_dotenv
 import pandas as pd
@@ -17,7 +19,14 @@ def transform_symbol_data(raw_data) -> pd.DataFrame:
         Handles the transformation of the raw data into a desired format
         Scope of this function is the Time Series (Daily) data
     """
-    nested_data = raw_data["Time Series (Daily)"]
+
+    try:
+        nested_data = raw_data["Time Series (Daily)"]
+    except KeyError:
+        raise KeyError(
+            f"Error getting Time Series data: {raw_data.head()}"
+        )
+
     df = pd.DataFrame.from_dict(nested_data, orient="index")
     df.index = pd.to_datetime(df.index)
     df = df.apply(pd.to_numeric)
@@ -33,7 +42,14 @@ def transform_symbol_data(raw_data) -> pd.DataFrame:
     return df
 
 def transform_symbol_meta_data(raw_data) -> pd.DataFrame:
-    nested_data = raw_data["Meta Data"]
+
+    try:
+        nested_data = raw_data["Meta Data"]
+    except KeyError:
+        raise KeyError(
+            f"Error getting Symbol Meta Data: {raw_data.head()}"
+        )
+
     df = pd.DataFrame(nested_data, index=[0])
 
     df.columns = df.columns.str.replace(r'^\d+\.\s+', '', regex=True)

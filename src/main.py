@@ -47,7 +47,7 @@ def transform_symbol_meta_data(raw_data) -> pd.DataFrame:
         nested_data = raw_data["Meta Data"]
     except KeyError:
         raise KeyError(
-            f"Error getting Symbol Meta Data: {raw_data.head()}"
+            f"Error getting Symbol Meta Data: {raw_data}"
         )
 
     df = pd.DataFrame(nested_data, index=[0])
